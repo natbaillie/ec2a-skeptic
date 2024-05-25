@@ -1,48 +1,132 @@
 <!DOCTYPE html>
-
-<!--
-     HTML code used with Epic Games HTML5 projects
-
-     much of this is for UE4 development purposes.
-
-     to create a custom HTML file for your project:
-     - make a copy of this file - or make one from scratch
-     - and put it in: "your project folder"/Build/HTML/GameX.html.template
--->
-
 <html lang="en">
 <head>
-	<title>FollyCaves1</title>
-	<meta charset="utf-8">
-	<meta name="viewport" content="width=device-width, initial-scale=1">
-
-	<script src="https://code.jquery.com/jquery-2.1.3.min.js"></script>
-	<script src="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.4/js/bootstrap.min.js"></script>
-	<link href="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.4/css/bootstrap.min.css" rel="stylesheet">
-
-	<link href="FollyCaves1.css" rel="stylesheet">
+    <title>FollyCaves1</title>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    
+    <!-- Including jQuery and Bootstrap from CDNs -->
+    <script src="https://code.jquery.com/jquery-2.1.3.min.js"></script>
+    <script src="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.4/js/bootstrap.min.js"></script>
+    <link href="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.4/css/bootstrap.min.css" rel="stylesheet">
+    
+    <!-- Custom CSS -->
+    <link href="FollyCaves1.css" rel="stylesheet">
 </head>
 <body>
+    <div class="wrapper" id="mainarea">
+        <div class="alert alert-warning centered-axis-xy" style="min-height: 20px; display:none;" role="alert" id="compilingmessage">
+            <div id='loadTasks'> </div>
+        </div>
+        <canvas tabindex="0" id="canvas" class="emscripten" oncontextmenu="event.preventDefault()" style="display:none;"></canvas>
+    </div>
 
-<div class="wrapper" id="mainarea">
-	<div class="alert alert-warning centered-axis-xy" style="min-height: 20px; display:none;" role="alert" id="compilingmessage">
-		<div id='loadTasks'> </div>
-	</div>
-	<!-- The "tabindex=0" specifier on the canvas is important to allow it to capture keyboard focus when clicking on it with a mouse -->
-	<canvas tabindex=0 id="canvas" class="emscripten" oncontextmenu="event.preventDefault()" style="display:none;">
-</div>
-<div class="row buttonarea text-center" id="buttonrow">
-	<div class="col-sm-2 text-center"></div>
-	<div class="col-sm-2 text-center"><button type="button" class="btn btn-primary" onclick="try { Module['pauseMainLoop'](); } catch(e) {console.error(e);}">Pause</button></div>
-	<div class="col-sm-2 text-center"><button type="button" class="btn btn-primary" onclick="try { Module['resumeMainLoop'](); } catch(e) {console.error(e);}">Resume</button></div>
-	<div class="col-sm-2 text-center"><button type="button" class="btn btn-primary" onclick="var w = document.getElementById('logwindow'); w.style.display = w.style.display ? '' : 'none';">Toggle Log</button></div>
-	<div class="col-sm-2 text-center"><button type="button" class="btn btn-primary" id='clear_indexeddb' onclick="try { deleteIndexedDBStorage(); } catch(e) {console.error(e);}">Clear IndexedDB</button></div>
-	<div class="col-sm-2 text-center"><button type="button" class="btn btn-primary" id="fullscreen_request">FullScreen</button></div>
-	<div class="col-sm-2 text-center"></div>
-	<div class="col-sm-2 text-center"></div>
-</div>
-<div class="texthalf text-normal jumbotron " id="logwindow" style='display:none'></div>
+    <!-- Control Buttons -->
+    <div class="row buttonarea text-center" id="buttonrow">
+        <div class="col-sm-2 text-center"></div>
+        <div class="col-sm-2 text-center"><button type="button" class="btn btn-primary" onclick="try { Module['pauseMainLoop'](); } catch(e) {console.error(e);}">Pause</button></div>
+        <div class="col-sm-2 text-center"><button type="button" class="btn btn-primary" onclick="try { Module['resumeMainLoop'](); } catch(e) {console.error(e);}">Resume</button></div>
+        <div class="col-sm-2 text-center"><button type="button" class="btn btn-primary" onclick="var w = document.getElementById('logwindow'); w.style.display = w.style.display ? '' : 'none';">Toggle Log</button></div>
+        <div class="col-sm-2 text-center"><button type="button" class="btn btn-primary" id='clear_indexeddb' onclick="try { deleteIndexedDBStorage(); } catch(e) {console.error(e);}">Clear IndexedDB</button></div>
+        <div class="col-sm-2 text-center"><button type="button" class="btn btn-primary" id="fullscreen_request">FullScreen</button></div>
+        <div class="col-sm-2 text-center"></div>
+        <div class="col-sm-2 text-center"></div>
+    </div>
+    <div class="texthalf text-normal jumbotron " id="logwindow" style='display:none'></div>
 
-<script src="FollyCaves1.UE4.js"></script>
+    <!-- Include the WebAssembly JavaScript -->
+    <script src="FollyCaves1.UE4.js"></script>
+
+    <script>
+        // Fullscreen Request Handler
+        document.getElementById('fullscreen_request').addEventListener('click', () => {
+            var canvas = document.getElementById('canvas');
+            if (canvas.requestFullscreen) {
+                canvas.requestFullscreen();
+            } else if (canvas.mozRequestFullScreen) { // Firefox
+                canvas.mozRequestFullScreen();
+            } else if (canvas.webkitRequestFullscreen) { // Chrome, Safari and Opera
+                canvas.webkitRequestFullscreen();
+            } else if (canvas.msRequestFullscreen) { // IE/Edge
+                canvas.msRequestFullscreen();
+            }
+        });
+
+        // IndexedDB Deletion Handler
+        function deleteIndexedDBStorage() {
+            if (!window.indexedDB) {
+                console.error('IndexedDB is not supported by this browser.');
+                document.getElementById('compilingmessage').innerText = 'IndexedDB is not supported by this browser.';
+                return;
+            }
+            const DBDeleteRequest = indexedDB.deleteDatabase('MyDatabase');
+            DBDeleteRequest.onerror = (event) => {
+                console.error('Error deleting IndexedDB:', event);
+                document.getElementById('compilingmessage').innerText = 'Error deleting IndexedDB.';
+            };
+            DBDeleteRequest.onsuccess = (event) => {
+                console.log('IndexedDB deleted successfully');
+                document.getElementById('compilingmessage').innerText = 'IndexedDB deleted successfully.';
+            };
+        }
+
+        // Handling Module Events
+        var Module = {
+            preRun: [],
+            postRun: [],
+            print: (text) => { console.log(text); },
+            printErr: (text) => { console.error(text); },
+            canvas: document.getElementById('canvas'),
+            setStatus: (text) => {
+                if (!Module.setStatus.last) Module.setStatus.last = { time: Date.now(), text: '' };
+                if (text === Module.setStatus.last.text) return;
+                var m = text.match(/([^(]+)\((\d+(\.\d+)?)\/\d+\)/);
+                var now = Date.now();
+                if (m && now - Module.setStatus.last.time < 30) return; // if this is a progress update, skip it if too soon
+                Module.setStatus.last.time = now;
+                Module.setStatus.last.text = text;
+                console.log(text);
+                document.getElementById('compilingmessage').style.display = 'block';
+                document.getElementById('compilingmessage').innerHTML = text;
+            },
+            totalDependencies: 0,
+            monitorRunDependencies: (left) => {
+                this.totalDependencies = Math.max(this.totalDependencies, left);
+                Module.setStatus(left ? 'Preparing... (' + (this.totalDependencies - left) + '/' + this.totalDependencies + ')' : 'All downloads complete.');
+            }
+        };
+        Module.setStatus('Downloading...');
+
+        // Initialize IndexedDB
+        function initIndexedDB() {
+            if (!window.indexedDB) {
+                console.error('IndexedDB is not supported by this browser.');
+                document.getElementById('compilingmessage').innerText = 'IndexedDB is not supported by this browser.';
+                return;
+            }
+
+            const request = indexedDB.open('MyDatabase', 1);
+
+            request.onerror = (event) => {
+                console.error('Error opening IndexedDB:', event);
+                document.getElementById('compilingmessage').innerText = 'Error opening IndexedDB.';
+            };
+
+            request.onsuccess = (event) => {
+                console.log('IndexedDB opened successfully');
+                const db = event.target.result;
+
+                // Perform further database operations here
+            };
+
+            request.onupgradeneeded = (event) => {
+                const db = event.target.result;
+                db.createObjectStore('MyObjectStore', { keyPath: 'id' });
+                console.log('IndexedDB upgrade successful');
+            };
+        }
+
+        initIndexedDB();
+    </script>
 </body>
 </html>
